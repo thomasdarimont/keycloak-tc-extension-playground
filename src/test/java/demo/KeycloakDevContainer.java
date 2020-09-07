@@ -29,6 +29,8 @@ import static java.nio.file.StandardWatchEventKinds.OVERFLOW;
 
 public class KeycloakDevContainer extends KeycloakContainer {
 
+    private boolean classFolderChangeTrackingEnabled;
+
     public KeycloakDevContainer(String image) {
         super(image);
     }
@@ -52,11 +54,13 @@ public class KeycloakDevContainer extends KeycloakContainer {
         withFileSystemBind(classesLocation, explodedFolderExtensionsJar, BindMode.READ_WRITE);
         withClasspathResourceMapping("dodeploy", deploymentTriggerFile, BindMode.READ_ONLY);
 
-        registerClassFolderWatcher(Paths.get(classesLocation).normalize(), () -> {
-            // System.out.println("Detected change... trigger redeployment.");
-            copyFileToContainer(Transferable.of("true".getBytes(StandardCharsets.UTF_8)), deploymentTriggerFile);
-            // System.out.println("Redeployment triggered");
-        });
+        if (isClassFolderChangeTrackingEnabled()) {
+            registerClassFolderWatcher(Paths.get(classesLocation).normalize(), () -> {
+                // System.out.println("Detected change... trigger redeployment.");
+                copyFileToContainer(Transferable.of("true".getBytes(StandardCharsets.UTF_8)), deploymentTriggerFile);
+                // System.out.println("Redeployment triggered");
+            });
+        }
     }
 
     private void registerClassFolderWatcher(Path classPath, Runnable onChange) {
@@ -122,5 +126,14 @@ public class KeycloakDevContainer extends KeycloakContainer {
                 return FileVisitResult.CONTINUE;
             }
         });
+    }
+
+    public boolean isClassFolderChangeTrackingEnabled() {
+        return classFolderChangeTrackingEnabled;
+    }
+
+    public KeycloakDevContainer withClassFolderChangeTrackingEnabled(boolean classFolderChangeTrackingEnabled) {
+        this.classFolderChangeTrackingEnabled = classFolderChangeTrackingEnabled;
+        return this;
     }
 }

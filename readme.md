@@ -37,3 +37,19 @@ that support exploded code deployment.
 ```
 - The `INIT2` indicates that Keycloak saw the new code.
 - If you place a breakpoint on the line with `### INIT2` you'll see that the breakpoint hits as soon as the new classes are deployed.
+
+
+# Misc
+
+## Prepare Keycloak realm
+
+...
+
+```
+bin/standalone.sh \
+  -Dkeycloak.migration.action=export \
+  -Dkeycloak.migration.file=demo-realm.json \
+  -Dkeycloak.migration.dir=. \
+  -Dkeycloak.migration.usersExportStrategy=REALM_FILE \
+  -Dkeycloak.migration.realmName=demo
+```
