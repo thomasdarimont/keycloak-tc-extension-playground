@@ -16,8 +16,10 @@ Note that Remote Debugging of the newly deployed code is also possible and allow
 This approach can be used by other projects as well, e.g. standard Java EE projects that use application servers
 that support exploded code deployment.   
 
-# Demo
+# KeycloakDevRunner
+The KeycloakDevRunner can be used to expose Keycloak extension from the current project to a Keycloak docker container.
 
+## Using the KeycloakDevRunner  
 - Import the protect into an IDE, e.g. IntelliJ.
 - Run the "KeycloakDevRunner" class
 - Create a remote Debugging configuration for the project (localhost:8787)
@@ -38,13 +40,24 @@ that support exploded code deployment.
 - The `INIT2` indicates that Keycloak saw the new code.
 - If you place a breakpoint on the line with `### INIT2` you'll see that the breakpoint hits as soon as the new classes are deployed.
 
+# Keycloak Integration Tests
+You can test your Keycloak extensions within a Keycloak container by using the `KeycloakDevContainer` which exposes the current classes path
+to the started Keycloak container.
+See [DemoOidcProtocolMapperTest](src/test/java/demo/keycloak/oidcmapper/DemoOidcProtocolMapperTest.java) for an example of this approach.
 
 # Misc
 
 ## Prepare Keycloak realm
 
-...
+To start with a proper Realm configuration it is advisable to configure the realm in a standalone keycloak instance 
+first and export the realm configuration after wards.  
 
+Start a standalone Keycloak instance:
+```
+bin/standalone.sh
+```
+
+Start a standalone Keycloak instance with export:
 ```
 bin/standalone.sh \
   -Dkeycloak.migration.action=export \

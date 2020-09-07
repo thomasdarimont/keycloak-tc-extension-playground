@@ -44,6 +44,8 @@ public class KeycloakDevContainer extends KeycloakContainer {
     protected void configure() {
         super.configure();
         this.withExposedPorts(8080, 8443, 8787);
+
+        // TODO externalize commands
         this.withCommand("-c standalone.xml", "-Dkeycloak.profile.feature.upload_scripts=enabled", "-Dwildfly.statistics-enabled=true", "--debug *:8787");
 
         String explodedFolderExtensionsJar = "/opt/jboss/keycloak/standalone/deployments/extensions.jar";
