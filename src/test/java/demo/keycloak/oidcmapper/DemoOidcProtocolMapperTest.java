@@ -29,7 +29,7 @@ public class DemoOidcProtocolMapperTest {
 
     @BeforeClass
     public static void beforeClass() {
-        keycloak = new KeycloakDevContainer("quay.io/keycloak/keycloak:11.0.2");
+        keycloak = new KeycloakDevContainer("quay.io/keycloak/keycloak:12.0.1" );
         keycloak.withReuse(true);
         keycloak.withExposedPorts(8080, 8787);
         keycloak.withFixedExposedPort(8787, 8787);

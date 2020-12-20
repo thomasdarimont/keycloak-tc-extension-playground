@@ -7,7 +7,7 @@ public class KeycloakDevRunner {
 
     public static void main(String[] args) throws Exception {
 
-        var kc = new KeycloakDevContainer("quay.io/keycloak/keycloak:11.0.2");
+        var kc = new KeycloakDevContainer("quay.io/keycloak/keycloak:12.0.1");
 
         kc.withFixedExposedPort(8080, 8080);
         kc.withFixedExposedPort(8787, 8787);

@@ -20,7 +20,7 @@ public class DemoEventListenerFactory implements EventListenerProviderFactory {
     @Override
     public void init(Config.Scope config) {
         // NOOP
-        log.info("### INIT1 " + getId());
+        log.info("### INIT " + getId());
     }
 
     @Override

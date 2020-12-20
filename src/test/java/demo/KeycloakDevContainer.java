@@ -2,9 +2,13 @@ package demo;
 
 import dasniko.testcontainers.keycloak.KeycloakContainer;
 import org.testcontainers.containers.BindMode;
+import org.testcontainers.containers.SelinuxContext;
 import org.testcontainers.images.builder.Transferable;
+import org.testcontainers.shaded.com.google.common.cache.Cache;
+import org.testcontainers.shaded.com.google.common.cache.CacheBuilder;
 import org.testcontainers.utility.MountableFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -21,6 +25,8 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
 import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
@@ -47,30 +53,34 @@ public class KeycloakDevContainer extends KeycloakContainer {
 
         // TODO externalize commands
         this.withCommand("-c standalone.xml", "-Dkeycloak.profile.feature.upload_scripts=enabled", "-Dwildfly.statistics-enabled=true", "--debug *:8787");
-
         String explodedFolderExtensionsJar = "/opt/jboss/keycloak/standalone/deployments/extensions.jar";
         String deploymentTriggerFile = explodedFolderExtensionsJar + ".dodeploy";
 
         String classesLocation = MountableFile.forClasspathResource(".").getResolvedPath() + "../classes";
 
-        withFileSystemBind(classesLocation, explodedFolderExtensionsJar, BindMode.READ_WRITE);
+        addFileSystemBind(classesLocation, explodedFolderExtensionsJar, BindMode.READ_WRITE, SelinuxContext.SINGLE);
         withClasspathResourceMapping("dodeploy", deploymentTriggerFile, BindMode.READ_ONLY);
 
         if (isClassFolderChangeTrackingEnabled()) {
-            registerClassFolderWatcher(Paths.get(classesLocation).normalize(), () -> {
-                // System.out.println("Detected change... trigger redeployment.");
+            registerClassFolderWatcher(Paths.get(
+                    classesLocation
+            ).normalize(), Set.of(new File(deploymentTriggerFile).getName()), (watchEvent) -> {
+                System.out.println("Detected change... trigger redeployment. changed file: " + watchEvent.context());
                 copyFileToContainer(Transferable.of("true".getBytes(StandardCharsets.UTF_8)), deploymentTriggerFile);
-                // System.out.println("Redeployment triggered");
+                System.out.println("Redeployment triggered");
             });
         }
     }
 
-    private void registerClassFolderWatcher(Path classPath, Runnable onChange) {
+    private void registerClassFolderWatcher(Path classPath, Set<String> excludes, Consumer<WatchEvent<Path>> onChange) {
 
         Set<String> watchList = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
         try {
             WatchService watcher = FileSystems.getDefault().newWatchService();
+
+            Cache<String, Boolean> seen = CacheBuilder.newBuilder().expireAfterWrite(500, TimeUnit.MILLISECONDS).build();
+
             Executors.newSingleThreadExecutor().execute(() -> {
                 for (; ; ) {
                     try {
@@ -88,12 +98,24 @@ public class KeycloakDevContainer extends KeycloakContainer {
                             }
 
                             WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                            Path filename = ev.context();
-                            if (filename.toFile().isDirectory()) {
+                            Path contextPath = ev.context();
+
+                            String filename = contextPath.getName(0).toString();
+                            if (excludes.contains(filename)) {
                                 continue;
                             }
 
-                            onChange.run();
+                            if (!filename.endsWith(".class")) {
+                                continue;
+                            }
+
+                            if (seen.getIfPresent(filename) != null) {
+                                continue;
+                            } else {
+                                seen.put(filename, Boolean.TRUE);
+                            }
+
+                            onChange.accept(ev);
                             break;
                         }
 
